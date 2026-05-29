@@ -73,8 +73,29 @@ Keep responses concise and friendly. Always respond in the language {name} write
 
 
 def send_message(to, body):
-    chunks = [body[i:i+1500] for i in range(0, len(body), 1500)]
-    for chunk in chunks:
+    if len(body) <= 1500:
+        twilio_client.messages.create(
+            from_=os.getenv("TWILIO_WHATSAPP_NUMBER"),
+            to=to,
+            body=body
+        )
+        return
+
+    # Split at paragraph boundaries to avoid cutting mid-sentence
+    paragraphs = body.split("\n\n")
+    chunk = ""
+    for para in paragraphs:
+        if len(chunk) + len(para) + 2 <= 1500:
+            chunk += ("" if not chunk else "\n\n") + para
+        else:
+            if chunk:
+                twilio_client.messages.create(
+                    from_=os.getenv("TWILIO_WHATSAPP_NUMBER"),
+                    to=to,
+                    body=chunk
+                )
+            chunk = para
+    if chunk:
         twilio_client.messages.create(
             from_=os.getenv("TWILIO_WHATSAPP_NUMBER"),
             to=to,
